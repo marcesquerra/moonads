@@ -29,7 +29,7 @@ scala> m.flatMap(l)(a => Some(a + 1) :: None :: Nil)
 res3: List[Option[Int]] = List(Some(2), None, Some(3), None)
 ```
 
-### Getting Sortilege
+### Getting Moonads
 
 Moonads is in its earliest stages and has not been released yet.
 
@@ -40,8 +40,10 @@ Moonads was inspired by this talk at the Scala Exchange 2016:
 [Extensible Effects vs. Monad Transformers](https://skillsmatter.com/skillscasts/8974-extensible-effects-vs-monad-transformers)
 
 More specifically, I wanted to try and see if I could find a generic way to compose monads.
-It turns out that, if want to compose two monads, you can, if you have a Traverse for the
-inner monad to compose. Moonads is built around a method with a signature more or less like this:
+It turns out that, to compose two monads, you can, if you have a Traverse for the inner monad
+to compose.
+
+At its core, Moonads is built around a method with a signature more or less like this:
 
 ```scala
 	
@@ -58,7 +60,8 @@ composed version of `map` has already been implemented, the new `flatMap` does t
 
 1. Uses the new `map` with the provided `f`. Converts a `A[B[T]]` into a `A[B[A[B[T2]]]]`
 2. Uses the traverse to swap the two middle monads, giving you back a `A[A[B[B[T2]]]]`
-3. Flattens the As and the Bs (this can be done out of the box with the Monad[A] and Monad[B])
+3. Flattens the As and the Bs (this can be done out of the box with the Monad[A] and Monad[B]).
+   This generates the desired `A[B[T2]]`
 
 ### Known Issues
 
