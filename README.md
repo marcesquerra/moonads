@@ -7,7 +7,7 @@
 
 ### Overview
 
-Moonads is library with tools for composing monads. It uses a Traverse of the inner monad
+Moonads is library with tools to (unlawfully) compose monads. It uses a Traverse of the inner monad
 to achieve this.
 
 ### Examples
@@ -65,6 +65,9 @@ composed version of `map` has already been implemented, the new `flatMap` does t
 
 ### Known Issues
 
+* As pointed out by Daniel Spiewak [here](https://twitter.com/djspiewak/status/808357325136240640)
+  and [here](https://twitter.com/djspiewak/status/808358646648279040), this kind of composition
+  is not lawful
 * You can only stack up to 4 monads with the current implementation. I
   will increase this limit up to 22 (see Future Work)
 * For all, except the outermost, monads in the stack, there must exist a Traverse.
@@ -73,6 +76,16 @@ composed version of `map` has already been implemented, the new `flatMap` does t
 
 ### Future Work
 
+* Design a ComposableMonad type class that know how to compose itself
+  with an outer (wrapping) monad
+* Use a `ComposableMonad` instead of a `Traverse` in all the provided
+  syntax sugars
+* Implement an implicit `ComposableMonad` generator based on `Traverse`,
+  and put it in the package `moonads.experimental.unlaful.traverse`
+* Implement a set of `ComposableMonad` based on monad transformers. Put
+  them on `moonads.transformers`
+* Investigate how to compose two monads by taking their free product,
+  as suggested by Rúnar Bjarnason in [here](https://twitter.com/runarorama/status/808556289353744385)
 * Increase the maximum stack size from 4 to 22, using code generator with SBT
 * Try to make the for comprehension syntax cleaner/friendlier
 
@@ -83,6 +96,8 @@ I would like to thank Erik Osheim for his keynote in the last scala exchange:
 [Visions for collaboration, competition, and interop in Scala](https://skillsmatter.com/skillscasts/8541-visions-for-collaboration-competition-and-interop-in-scala)
 
 which convinced me to publish this and provided the template for this README file.
+
+Also to all the friendly feedback I've recieved on twitter!
 
 ### Copyright and License
 
