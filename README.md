@@ -13,7 +13,7 @@ Moonads is library with:
 * Various implementations of monad composition. Currently:
   * based on Monad Transformers
   * based on Traverse (unlawful)
-* Which implementation to use can be selected with just one import
+* A way to select which implementation to use (with just one import)
 
 ### Examples
 Monad instance creation
