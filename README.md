@@ -7,26 +7,67 @@
 
 ### Overview
 
-Moonads is library with tools to (unlawfully) compose monads. It uses a Traverse of the inner monad
-to achieve this.
+Moonads is library with:
+
+* Helpers to easily compose monads
+* Various implementations of monad composition. Currently:
+  * Monad Transformers based
+  * Traverse based (unlawful)
+* Which implementation to use can be selected with just one import
 
 ### Examples
+Monad instance creation
 
 ```
 scala> import moonads._
 import moonads._
 
+scala> import moonads.composers.monadT._ // This selects the MonadTransformer based composition
+import moonads.composers.monadT._
+
 scala> import cats.implicits._
 import cats.implicits._
 
 scala> val m = Moon[List, Option]
-m: cats.Monad[[TT]List[Option[TT]]] = moonads.Moon$$anon$1@5958955e
+m: cats.Monad[[TT]List[Option[TT]]] = moonads.composers.package$monadTHelpers$$anon$4$$anon$1@420ea4c7
 
 scala> val l = Some(1) :: Some(2) :: Nil
 l: List[Some[Int]] = List(Some(1), Some(2))
 
 scala> m.flatMap(l)(a => Some(a + 1) :: None :: Nil)
-res3: List[Option[Int]] = List(Some(2), None, Some(3), None)
+res0: List[Option[Int]] = List(Some(2), None, Some(3), None)
+```
+
+For comprehension
+
+```
+scala> import moonads._
+import moonads._
+
+scala> import moonads.composers.monadT._ // This selects the MonadTransformer based composition
+import moonads.composers.monadT._
+
+scala> import cats.implicits._
+import cats.implicits._
+
+scala> type M[T] = List[Option[T]]
+defined type alias M
+
+scala> def f1(i: Int): M[Int] = Some(i + 2) :: Nil
+f1: (i: Int)M[Int]
+
+scala> def f2(i: Int): M[Option[Int]] = Some(Some(i - 4)) :: Some(None) :: Nil
+f2: (i: Int)M[Option[Int]]
+
+scala> val tmp =
+     |   for {
+     |     a <- f1(7).as[List, Option].run
+     |     b <- f2(a).as[List, Option].run
+     |   } yield (a, b)
+tmp: moonads.Wrapper[[TT]List[Option[TT]],(Int, Option[Int])] = Wrapper(List(Some((9,Some(5))), Some((9,None))))
+
+scala> tmp.get
+res1: List[Option[(Int, Option[Int])]] = List(Some((9,Some(5))), Some((9,None)))
 ```
 
 ### Getting Moonads
@@ -40,54 +81,110 @@ Moonads was inspired by this talk at the Scala Exchange 2016:
 [Extensible Effects vs. Monad Transformers](https://skillsmatter.com/skillscasts/8974-extensible-effects-vs-monad-transformers)
 
 More specifically, I wanted to try and see if I could find a generic way to compose monads.
-It turns out that, to compose two monads, you can, if you have a Traverse for the inner monad
-to compose.
+It turns out that Monad composition is a hot topic with a lot of research going on. My own initial approach (based on Traverse) is unlawful, but during that initial development and some online conversations, I was able to separate how the composition is implemented from how is used.
 
-At its core, Moonads is built around a method with a signature more or less like this:
+#### The ComposableMonad type class
+
+The `ComposableMonad` type class defined for a `Monad` `B` provides a single operation `composeInto` receiving a `Monad` `A` and returning a new `Monad` resulting from the composition of `A` wrapping `B`.
+
+This is its definition:
 
 ```scala
-	
-  def compose[A[_], B[_]](a: Monad[A], b: Monad[B], t: Traverse[B]): Monad[A[B[?]]]
+trait ComposableMonad[B[_]] {
+
+    def composeInto[A[_]](a: Monad[A]): Monad[Lambda[T => A[B[T]]]]
+
+}
 
 ```
 
-NOTE: I've simplified the signature a bit, for readability
+This provides a mechanism for components that want to be able to compose monads, and don't want to worry about *how*, to depend on the type class.
 
-#### Why it works?
+Currently Moonads has two sets of implementations:
 
-The key point on trying to compose two monads is to implement a `flatMap` method. Once a
-composed version of `map` has already been implemented, the new `flatMap` does this:
+1. `import moonads.composers.monadT._`
+  * Provides a `ComposableMonad` for every Monad that happens to have a Monad Transformer implemented in Cats. (Well, currently only `Option` and `Id`. Implementations for `Either`, `State` and `Writer` are under way)
+2. `import moonads.composers.experimental.unlawfulTraverse`
+  * Provides a `ComposableMonad` for every Monad for which it also exists a `Traverse`
+  * This type of composition is unlawful (I believe investigation on how to restrict this to cases where the composition is lawful is being made)
+  * I want to spend some time understanding what exactly this kind of composition produces
+  * EXPERIMENTAL
 
-1. Uses the new `map` with the provided `f`. Converts a `A[B[T]]` into a `A[B[A[B[T2]]]]`
-2. Uses the traverse to swap the two middle monads, giving you back a `A[A[B[B[T2]]]]`
-3. Flattens the As and the Bs (this can be done out of the box with the Monad[A] and Monad[B]).
-   This generates the desired `A[B[T2]]`
+It's important to be noted that, to compose two monads, you only need a `ComposableMonad` for the innermost monad. That is, you can compose `List[Option[?]]` even when no Monad Transformer exist for `List` (in Cats, as of now)  
+
+#### Monad instance generation
+
+You can get an instance of `Monad` for the composition of up to four stacked monads like this:
+
+```scala
+import moonads._
+import moonads.composers.monadT._ // you might choose another composition method
+import cats.implicits._
+
+val one   = Moon[List]
+val two   = Moon[List, Id]
+val three = Moon[List, Id, Option]
+
+// ...
+
+```
+
+#### For comprehension syntax
+
+If you have a series of methods that operate with the same stack of monads, it tends to be useful to use for comprehension to have a clearer syntax. Moonads provides helpers to make it easier to work with:
+
+```scala
+import moonads._
+import moonads.composers.monadT._ // you might choose another composition method
+import cats.implicits._
+
+type M[T] = List[Id[Option[T]]]
+
+def f1: M[Int] = ???
+def f2: M[String] = ???
+
+val response =
+  for {
+    a <- f1.as[List, Id, Option]
+    b <- f2.as[List, Id, Option]
+  } yield (a, b)
+
+response.get  // (Int, String)
+```
+
+You can choose up to which level you want to stack to:
+
+```scala
+val response2 =
+  for {
+    a <- f1.as[List, Id]
+    b <- f2.as[List, Id]
+  } yield (a, b)
+
+response2.get  // (Option[Int], Option[String])
+```
 
 ### Known Issues
 
+* The Monad Transformer based implementation still has no implementation for `Either`, `State` or `Writer`
 * As pointed out by Daniel Spiewak [here](https://twitter.com/djspiewak/status/808357325136240640)
-  and [here](https://twitter.com/djspiewak/status/808358646648279040), this kind of composition
-  is not lawful
+  and [here](https://twitter.com/djspiewak/status/808358646648279040), composition through `Traverse` is not lawful
 * You can only stack up to 4 monads with the current implementation. I
   will increase this limit up to 22 (see Future Work)
-* For all, except the outermost, monads in the stack, there must exist a Traverse.
-  In most cases this should not be a problem (as of now, I've only found
-  the 'State Monad' as an example of a monad that does not hava a Traverse
 
 ### Future Work
 
-* Design a ComposableMonad type class that know how to compose itself
-  with an outer (wrapping) monad
-* Use a `ComposableMonad` instead of a `Traverse` in all the provided
-  syntax sugars
-* Implement an implicit `ComposableMonad` generator based on `Traverse`,
-  and put it in the package `moonads.experimental.unlaful.traverse`
-* Implement a set of `ComposableMonad` based on monad transformers. Put
-  them on `moonads.transformers`
+* Implement the `ComposableMonad` for `Either`, `State` and `Writer` in the Monad Transformer based implementation
+* Create a third composer implementation that contain all the `ComposableMonad` based on monad transformers, extended with all (some) the `ComposableMonad` based on `Traverse` that are lawful (if any)
 * Investigate how to compose two monads by taking their free product,
   as suggested by Rúnar Bjarnason in [here](https://twitter.com/runarorama/status/808556289353744385)
 * Increase the maximum stack size from 4 to 22, using code generator with SBT
 * Try to make the for comprehension syntax cleaner/friendlier
+
+### Related Projects
+
+* [Cats](https://github.com/typelevel/cats) provides the monads, Moonads the composition
+* [Emm](https://github.com/djspiewak/emm) - A general monad for managing stacking effects (It's a really similar project to Moonads)
 
 ### Thanks
 
