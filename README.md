@@ -11,8 +11,8 @@ Moonads is library with:
 
 * Helpers to easily compose monads
 * Various implementations of monad composition. Currently:
-  * based on Monad Transformers
-  * based on Traverse (unlawful)
+  * one based on Monad Transformers
+  * one based on Traverse (unlawful)
 * A way to select which implementation to use (with just one import)
 
 ### Examples
