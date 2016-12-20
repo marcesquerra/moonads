@@ -1,4 +1,4 @@
 
-package object moonads extends syntax.ComposeMonads
+package object moonads extends syntax.MonadLifter
 
 

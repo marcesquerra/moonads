@@ -100,6 +100,8 @@ trait ComposableMonad[B[_]] {
 
 This provides a mechanism for components that want to be able to compose monads, and don't want to worry about *how*, to depend on the type class.
 
+**ALSO**, it provides a proof that a particular composition can be performed at compile time: if an instance of `ComposableMonad` for `B` is available in scope, that means the composition can happen.
+
 Currently Moonads has two sets of implementations:
 
 1. `import moonads.composers.monadT._`
