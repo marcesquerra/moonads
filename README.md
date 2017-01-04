@@ -7,7 +7,7 @@
 
 ### Overview
 
-Moonads is library with:
+Moonads is a library with:
 
 * Helpers to easily compose monads
 * Various implementations of monad composition. Currently:
