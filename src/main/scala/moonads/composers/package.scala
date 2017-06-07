@@ -15,9 +15,9 @@ package object composers {
 
     implicit def IdT(implicit b: Monad[Id]): ComposableMonad[Id] =
 	builder[Id, IdT]
-	
-//    implicit def EitherT(implicit b: Monad[Either]): ComposableMonad[Either] =
-//	builder[Either, EitherT]
+
+    implicit def EitherT[L](implicit b: Monad[Either[L, ?]]): ComposableMonad[Either[L,?]] =
+  builder[Either[L,?], EitherT[?[_],L,?]]
 //
 //    implicit def StateT(implicit b: Monad[State]): ComposableMonad[State] =
 //	builder[State, StateT]
@@ -50,12 +50,14 @@ package object composers {
       def monad   [A[_]]   (implicit a:  Monad[A]):     Monad[Lambda[t => IdT[A,t]]] = implicitly
     }
 
-//    protected implicit val EitherTransLift: MTransLift[Either, EitherT] = new MTransLift[Either, EitherT] {
-//      def extract [A[_], T](         in: EitherT[A,T]): A[EitherT[T]]                     = in.value
-//      def lift    [A[_], T](         in: A[Either[T]]): EitherT[A,T]                     = EitherT(in)
-//      def monad   [A[_]]   (implicit a:  Monad[A]):     Monad[Lambda[t => EitherT[A,t]]] = implicitly
-//    }
-//
+    protected implicit def EitherTransLift[L]: MTransLift[Either[L, ?], EitherT[?[_], L, ?]] = {
+      new MTransLift[Either[L,?], EitherT[?[_],L,?]] {
+        override def extract[A[_], R](in: EitherT[A,L,R]): A[Either[L,R]] = in.value
+        override def lift[A[_], R](in: A[Either[L, R]]): EitherT[A,L,R] = EitherT(in)
+        override def monad[A[_]](implicit a: Monad[A]): Monad[Lambda[t => EitherT[A, L,t]]] = implicitly
+      }
+    }
+
 //    protected implicit val StateTransLift: MTransLift[State, StateT] = new MTransLift[State, StateT] {
 //      def extract [A[_], T](         in: StateT[A,T]): A[State[T]]                     = in.value
 //      def lift    [A[_], T](         in: A[State[T]]): StateT[A,T]                     = StateT(in)
