@@ -11,13 +11,13 @@ package object composers {
   object monadT extends monadTHelpers with MTransLiftInstances {
 	
     implicit def optionT(implicit b: Monad[Option]): ComposableMonad[Option] =
-	builder[Option, OptionT]
+      builder[Option, OptionT]
 
     implicit def IdT(implicit b: Monad[Id]): ComposableMonad[Id] =
-	builder[Id, IdT]
+      builder[Id, IdT]
 
     implicit def EitherT[L](implicit b: Monad[Either[L, ?]]): ComposableMonad[Either[L,?]] =
-  builder[Either[L,?], EitherT[?[_],L,?]]
+      builder[Either[L,?], EitherT[?[_],L,?]]
 //
 //    implicit def StateT(implicit b: Monad[State]): ComposableMonad[State] =
 //	builder[State, StateT]
