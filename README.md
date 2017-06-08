@@ -105,7 +105,7 @@ This provides a mechanism for components that want to be able to compose monads,
 Currently Moonads has two sets of implementations:
 
 1. `import moonads.composers.monadT._`
-  * Provides a `ComposableMonad` for every Monad that happens to have a Monad Transformer implemented in Cats. (Well, currently only `Option` and `Id`. Implementations for `Either`, `State` and `Writer` are under way)
+  * Provides a `ComposableMonad` for every Monad that happens to have a Monad Transformer implemented in Cats. (Well, currently only `Either`, `Option` and `Id`. Implementations for `State` and `Writer` are under way)
 2. `import moonads.composers.experimental.unlawfulTraverse`
   * Provides a `ComposableMonad` for every Monad for which it also exists a `Traverse`
   * This type of composition is unlawful (I believe investigation on how to restrict this to cases where the composition is lawful is being made)
@@ -168,7 +168,7 @@ response2.get  // (Option[Int], Option[String])
 
 ### Known Issues
 
-* The Monad Transformer based implementation still has no implementation for `Either`, `State` or `Writer`
+* The Monad Transformer based implementation still has no implementation for `State` or `Writer`
 * As pointed out by Daniel Spiewak [here](https://twitter.com/djspiewak/status/808357325136240640)
   and [here](https://twitter.com/djspiewak/status/808358646648279040), composition through `Traverse` is not lawful
 * You can only stack up to 4 monads with the current implementation. I
@@ -176,7 +176,7 @@ response2.get  // (Option[Int], Option[String])
 
 ### Future Work
 
-* Implement the `ComposableMonad` for `Either`, `State` and `Writer` in the Monad Transformer based implementation
+* Implement the `ComposableMonad` for `State` and `Writer` in the Monad Transformer based implementation
 * Create a third composer implementation that contain all the `ComposableMonad` based on monad transformers, extended with all (some) the `ComposableMonad` based on `Traverse` that are lawful (if any)
 * Investigate how to compose two monads by taking their free product,
   as suggested by Rúnar Bjarnason in [here](https://twitter.com/runarorama/status/808556289353744385)
